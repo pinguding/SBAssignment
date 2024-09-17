@@ -12,7 +12,7 @@ import XCTest
 /// 사용을 위해서는 해당 클래스를 상속받고,
 /// `open func userStorage() -> SBUserStorage?`를 override한뒤, 본인이 구현한 SBUserStorage의 인스턴스를 반환하도록 합니다.
 open class UserStorageBaseTests: XCTestCase {
-    open func userStorage() -> SBUserStorage? { nil }
+    open func userStorage() -> SBUserStorage? { SBUserStorageInterface() }
     
     public func testSetUser() throws {
         let storage = try XCTUnwrap(self.userStorage())
@@ -240,6 +240,19 @@ open class UserStorageBaseTests: XCTestCase {
             for user in users {
                 XCTAssertTrue(retrievedUsers.contains(where: { $0.userId == user.userId && $0.nickname == user.nickname }) )
             }
+        }
+    }
+    
+    public func testPerformanceOfGetUsersByNickname() throws {
+        let storage = try XCTUnwrap(self.userStorage())
+        
+        for i in 0..<1_000 {
+            let user = SBUser(userId: "\(i)", nickname: "\(i % 10)")
+            storage.upsertUser(user)
+        }
+        
+        measure {
+            _ = storage.getUsers(for: "1")
         }
     }
 }

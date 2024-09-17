@@ -9,14 +9,14 @@ import XCTest
 @testable import SendbirdUserManager
 
 final class UserManagerTests: UserManagerBaseTests {
-    override func userManager() -> SBUserManager {
-        MockUserManager()
-    }
+//    override func userManager() -> SBUserManager {
+//        MockUserManager()
+//    }
 }
 
 final class UserStorageTests: UserStorageBaseTests {
     override func userStorage() -> SBUserStorage? {
-        MockUserStorage()
+        super.userStorage()
     }
 }
 
