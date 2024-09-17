@@ -7,7 +7,7 @@
 
 import Foundation
 
-public final class SBNetworkClientInterface: SBNetworkClient {
+final class SBNetworkClientInterface: SBNetworkClient {
     
     static private let session: URLSession = URLSession(configuration: .default)
     
@@ -19,7 +19,7 @@ public final class SBNetworkClientInterface: SBNetworkClient {
     
     private var sessionTaskStroage: [UUID: URLSessionDataTask] = [:]
     
-    public init(applicationId: String, apiToken: String) {
+    init(applicationId: String, apiToken: String) {
         self.applicationId = applicationId
         self.apiToken = apiToken
     }
@@ -31,7 +31,7 @@ public final class SBNetworkClientInterface: SBNetworkClient {
         sessionTaskStroage.removeAll()
     }
     
-    public func request<R>(request: R, completionHandler: @escaping (Result<R.Response, any Error>) -> Void) where R : Request {
+    func request<R>(request: R, completionHandler: @escaping (Result<R.Response, any Error>) -> Void) where R : Request {
         let taskId: UUID = .init()
         
         do {

@@ -27,14 +27,14 @@ struct CreateUserReqeuest: Request {
     
     var queryItems: [URLQueryItem]?
     
-    init(applicationId: String, apiToken: String, user: SBUser) throws {
+    init(applicationId: String, apiToken: String, parameters: UserCreationParams) throws {
         self.applicationId = applicationId
         self.headerFields = ["api-token": apiToken]
         
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         
-        let bodyObject = SBUserDTO(userId: user.userId, nickname: user.nickname, profileUrl: user.profileURL)
+        let bodyObject = SBUserDTO(userId: parameters.userId, nickname: parameters.nickname, profileUrl: parameters.profileURL)
         
         do {
             self.body = try encoder.encode(bodyObject)

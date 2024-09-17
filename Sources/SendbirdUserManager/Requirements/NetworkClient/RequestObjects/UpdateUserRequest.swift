@@ -29,15 +29,15 @@ struct UpdateUserReqeuest: Request {
     
     var queryItems: [URLQueryItem]?
     
-    init(applicationId: String, apiToken: String, user: SBUser) throws {
+    init(applicationId: String, apiToken: String, parameters: UserUpdateParams) throws {
         self.applicationId = applicationId
         self.headerFields = ["api-token": apiToken]
-        self.userId = user.userId
+        self.userId = parameters.userId
         
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         
-        let bodyObject = SBUserDTO(userId: user.userId, nickname: user.nickname, profileUrl: user.profileURL)
+        let bodyObject = SBUserDTO(userId: parameters.userId, nickname: parameters.nickname, profileUrl: parameters.profileURL)
         
         do {
             self.body = try encoder.encode(bodyObject)
