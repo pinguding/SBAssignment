@@ -16,6 +16,8 @@ public enum RequestError: LocalizedError {
     
     public var errorDescription: String? {
         switch self {
+//        case .applicationIdAndAPITokenNotSpecified:
+//            return "Before request, applicationId and api token must set. Please initApplication first."
         case .badURL:
             return "Cannot create URL object. Please check again the baseURL and paths."
         case .httpBodyEncodingFailure:

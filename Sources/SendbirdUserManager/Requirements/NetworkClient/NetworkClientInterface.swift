@@ -11,29 +11,24 @@ final class SBNetworkClientInterface: SBNetworkClient {
     
     static private let session: URLSession = URLSession(configuration: .default)
     
-    private let applicationId: String
-    
-    private let apiToken: String
-    
     private let defaultTimeoutInterval: TimeInterval = 30
     
-    private var sessionTaskStroage: [UUID: URLSessionDataTask] = [:]
-    
-    init(applicationId: String, apiToken: String) {
-        self.applicationId = applicationId
-        self.apiToken = apiToken
+    private var sessionTaskStroage: [UUID: (createdAt: Date, dataTask: URLSessionDataTask)] = [:] {
+        didSet {
+            guard oldValue.count < sessionTaskStroage.count else { return }
+            
+        }
     }
     
     deinit {
         sessionTaskStroage.values.forEach { dataTask in
-            dataTask.cancel()
+            dataTask.dataTask.cancel()
         }
         sessionTaskStroage.removeAll()
     }
     
     func request<R>(request: R, completionHandler: @escaping (Result<R.Response, any Error>) -> Void) where R : Request {
         let taskId: UUID = .init()
-        
         do {
             let urlRequest = try urlRequest(createdFrom: request, timeoutInterval: defaultTimeoutInterval)
             
@@ -69,9 +64,7 @@ final class SBNetworkClientInterface: SBNetworkClient {
                 self?.sessionTaskStroage[taskId] = nil
             }
             
-            sessionTaskStroage[taskId] = dataTask
-            sessionTaskStroage[taskId]?.resume()
-            
+            sessionTaskStroage[taskId] = (Date(), dataTask)
         } catch let error {
             completionHandler(.failure(error))
         }

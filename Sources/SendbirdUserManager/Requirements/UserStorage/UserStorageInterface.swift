@@ -6,45 +6,36 @@
 //
 
 import Foundation
+import OrderedCollections
 
 public final class SBUserStorageInterface: SBUserStorage {
     
-    private var users: [String: (index: Int, user: SBUser)] = [:]
-    
-    private var userArray: [SBUser] = []
+    private var users: OrderedDictionary<String, SBUser> = .init()
     
     private let lock: NSLocking = NSRecursiveLock()
     
     public func upsertUser(_ user: SBUser) {
         defer { lock.unlock() }
         lock.lock()
-        if let userContext = users[user.userId] {
-            let index = userContext.index
-            users[user.userId] = (index, user)
-            userArray[index] = user
-        } else {
-            let index = users.count
-            users[user.userId] = (index, user)
-            userArray.append(user)
-        }
+        users[user.userId] = user
     }
     
     public func getUsers() -> [SBUser] {
         defer { lock.unlock() }
         lock.lock()
-        return userArray
+        return users.values.elements
     }
     
     public func getUsers(for nickname: String) -> [SBUser] {
         defer { lock.unlock() }
         lock.lock()
-        return userArray.filter{ $0.nickname == nickname }
+        return users.values.filter { $0.userId == nickname }
     }
     
     public func getUser(for userId: String) -> (SBUser)? {
         defer { lock.unlock() }
         lock.lock()
-        return users[userId]?.1
+        return users[userId]
     }
 }
 
