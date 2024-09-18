@@ -6,35 +6,34 @@
 //
 
 import Foundation
+import UIKit
 
 final class SBNetworkClientInterface: SBNetworkClient {
     
     static private let session: URLSession = URLSession(configuration: .default)
     
     private let defaultTimeoutInterval: TimeInterval = 30
+   
+    private let requestsPerSecondLimit: Int = 1
     
-    private var sessionTaskStroage: [UUID: (createdAt: Date, dataTask: URLSessionDataTask)] = [:] {
-        didSet {
-            guard oldValue.count < sessionTaskStroage.count else { return }
-            
-        }
+    private let operationQueue: OperationQueue
+        
+    init() {
+        operationQueue = .init()
+        operationQueue.maxConcurrentOperationCount = 1
     }
     
     deinit {
-        sessionTaskStroage.values.forEach { dataTask in
-            dataTask.dataTask.cancel()
-        }
-        sessionTaskStroage.removeAll()
+        operationQueue.cancelAllOperations()
     }
     
     func request<R>(request: R, completionHandler: @escaping (Result<R.Response, any Error>) -> Void) where R : Request {
-        let taskId: UUID = .init()
         do {
             let urlRequest = try urlRequest(createdFrom: request, timeoutInterval: defaultTimeoutInterval)
             
-            let dataTask = SBNetworkClientInterface.session.dataTask(with: urlRequest) { [weak self] data, response, error in
+            let dataTask = SBNetworkClientInterface.session.dataTask(with: urlRequest) { data, response, error in
+                print("Request Date: \(CACurrentMediaTime())")
                 if let error = error {
-                    self?.sessionTaskStroage[taskId] = nil
                     completionHandler(.failure(error))
                     return
                 }
@@ -61,10 +60,10 @@ final class SBNetworkClientInterface: SBNetworkClient {
                 } else {
                     completionHandler(.failure(URLError(.badServerResponse)))
                 }
-                self?.sessionTaskStroage[taskId] = nil
             }
             
-            sessionTaskStroage[taskId] = (Date(), dataTask)
+            operationQueue.addOperation(SBDataTaskOperation(requestsPerSecondLimit: requestsPerSecondLimit, dataTask: dataTask))
+            
         } catch let error {
             completionHandler(.failure(error))
         }
@@ -102,5 +101,29 @@ final class SBNetworkClientInterface: SBNetworkClient {
         }
         
         return urlReqeust
+    }
+}
+
+private class SBDataTaskOperation: Operation, @unchecked Sendable {
+    
+    private let dataTask: URLSessionDataTask
+    
+    private let requestsPerSecondLimit: Int
+    
+    init(requestsPerSecondLimit: Int, dataTask: URLSessionDataTask) {
+        self.requestsPerSecondLimit = requestsPerSecondLimit
+        self.dataTask = dataTask
+    }
+    
+    override func cancel() {
+        dataTask.cancel()
+    }
+
+    override func main() {
+        if isCancelled { return }
+        let microSeconds: Int = 1_000_000
+        dataTask.resume()
+        
+        usleep(UInt32(microSeconds / requestsPerSecondLimit))
     }
 }

@@ -34,7 +34,7 @@ struct CreateUserReqeuest: Request {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         
-        let bodyObject = SBUserDTO(userId: parameters.userId, nickname: parameters.nickname, profileUrl: parameters.profileURL)
+        let bodyObject = SBUserDTO(userId: parameters.userId, nickname: parameters.nickname, profileUrl: parameters.profileURL ?? "")
         
         do {
             self.body = try encoder.encode(bodyObject)

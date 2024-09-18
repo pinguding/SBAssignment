@@ -12,10 +12,10 @@ import XCTest
 /// 사용을 위해서는 해당 클래스를 상속받고,
 /// `open func userManager() -> SBUserManager?`를 override한뒤, 본인이 구현한 SBUserManager의 인스턴스를 반환하도록 합니다.
 open class UserManagerBaseTests: XCTestCase {
-    open func userManager() -> SBUserManager? { nil }
+    open func userManager() -> SBUserManager? { SBUserManagerInterface() }
     
-    public let applicationId = ""   // Note: add an application ID
-    public let apiToken = ""        // Note: add an API Token
+    public let applicationId = "14DEF280-5AA7-4C59-BEDD-9DE09CF7FDBA"   // Note: add an application ID
+    public let apiToken = "980237c80950a3aa4a2529d435c6493a9456a0f7"        // Note: add an API Token
     
     public func testInitApplicationWithDifferentAppIdClearsData() throws {
         let userManager = try XCTUnwrap(self.userManager())
@@ -248,6 +248,9 @@ open class UserManagerBaseTests: XCTestCase {
             DispatchQueue.global().async {
                 userManager.getUser(userId: createdUser.userId) { getResult in
                     if case .success(let user) = getResult {
+                        print(user.nickname!)
+                        print(initialUserNickname)
+                        print(updatedUserNickname)
                         XCTAssertTrue(user.nickname == initialUserNickname || user.nickname == updatedUserNickname)
                     } else {
                         XCTFail("Failed to retrieve user")

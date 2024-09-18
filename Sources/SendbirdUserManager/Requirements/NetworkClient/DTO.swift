@@ -11,6 +11,10 @@ internal struct SBUserDTO: Codable {
     let userId: String
     let nickname: String?
     let profileUrl: String?
+    
+    func convertToUser() -> SBUser {
+        SBUser(userId: userId, nickname: nickname, profileURL: profileUrl)
+    }
 }
 
 internal struct SBUserListDTO: Decodable {

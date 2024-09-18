@@ -27,12 +27,19 @@ struct GetUserListReqeuest: Request {
         nil
     }
     
-    var queryItems: [URLQueryItem]? {
-        nil
-    }
+    var queryItems: [URLQueryItem]?
     
-    init(applicationId: String, apiToken: String) {
+    init(applicationId: String, apiToken: String, limit: Int = 100, nickname: String? = nil) {
         self.applicationId = applicationId
         self.headerFields = ["api-token": apiToken]
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "limit", value: "\(limit)")
+        ]
+        
+        if let nickname = nickname {
+            queryItems.append(URLQueryItem(name: "nickname", value: nickname))
+        }
+        
+        self.queryItems = queryItems
     }
 }
