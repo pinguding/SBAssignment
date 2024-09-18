@@ -255,4 +255,44 @@ open class UserStorageBaseTests: XCTestCase {
             _ = storage.getUsers(for: "1")
         }
     }
+    
+    public func testUpdateUsersCountCheck() throws {
+        let storage = try XCTUnwrap(self.userStorage())
+        let numberOfCreations = 1_000
+        for i in 0..<numberOfCreations {
+            let user = SBUser(userId: "\(i)")
+            storage.upsertUser(user)
+        }
+        
+        for i in 0..<numberOfCreations {
+            let user = SBUser(userId: "\(i)", nickname: "\(i % 10)")
+            storage.upsertUser(user)
+        }
+        
+        XCTAssertEqual(storage.getUsers().count, numberOfCreations)
+    }
+    
+    public func testUpdateUsersConcurrentCheck() throws {
+        let storage = try XCTUnwrap(self.userStorage())
+        let numberOfCreations = 10
+        
+        
+        let expectation = self.expectation(description: "Update users concurrent check")
+        expectation.expectedFulfillmentCount = numberOfCreations * 2
+
+        for i in 0..<numberOfCreations {
+            DispatchQueue.global().async {
+                storage.upsertUser(SBUser(userId: "\(i)"))
+                expectation.fulfill()
+            }
+            
+            DispatchQueue.global().async {
+                usleep(1000)
+                XCTAssertEqual(storage.getUsers().count, numberOfCreations)
+                expectation.fulfill()
+            }
+        }
+        
+        wait(for: [expectation], timeout: 20.0)
+    }
 }
