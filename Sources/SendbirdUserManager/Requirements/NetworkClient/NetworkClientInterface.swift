@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import UIKit
 
 final class SBNetworkClientInterface: SBNetworkClient {
     
@@ -21,6 +20,7 @@ final class SBNetworkClientInterface: SBNetworkClient {
     init() {
         operationQueue = .init()
         operationQueue.maxConcurrentOperationCount = 1
+        operationQueue.qualityOfService = .userInitiated
     }
     
     deinit {
@@ -32,7 +32,7 @@ final class SBNetworkClientInterface: SBNetworkClient {
             let urlRequest = try urlRequest(createdFrom: request, timeoutInterval: defaultTimeoutInterval)
             
             let dataTask = SBNetworkClientInterface.session.dataTask(with: urlRequest) { data, response, error in
-                print("Request Date: \(CACurrentMediaTime())")
+                print("Request Date: \(Date())")
                 if let error = error {
                     completionHandler(.failure(error))
                     return
@@ -62,7 +62,8 @@ final class SBNetworkClientInterface: SBNetworkClient {
                 }
             }
             
-            operationQueue.addOperation(SBDataTaskOperation(requestsPerSecondLimit: requestsPerSecondLimit, dataTask: dataTask))
+            let taskOperation = SBDataTaskOperation(requestsPerSecondLimit: requestsPerSecondLimit, dataTask: dataTask)
+            operationQueue.addOperation(taskOperation)
             
         } catch let error {
             completionHandler(.failure(error))
@@ -110,6 +111,12 @@ private class SBDataTaskOperation: Operation, @unchecked Sendable {
     
     private let requestsPerSecondLimit: Int
     
+    private var isDelayed: Bool = false
+    
+    override var isFinished: Bool {
+        isDelayed && super.isFinished
+    }
+    
     init(requestsPerSecondLimit: Int, dataTask: URLSessionDataTask) {
         self.requestsPerSecondLimit = requestsPerSecondLimit
         self.dataTask = dataTask
@@ -121,9 +128,11 @@ private class SBDataTaskOperation: Operation, @unchecked Sendable {
 
     override func main() {
         if isCancelled { return }
-        let microSeconds: Int = 1_000_000
         dataTask.resume()
-        
-        usleep(UInt32(microSeconds / requestsPerSecondLimit))
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + (1.0 / Double(requestsPerSecondLimit))) { [weak self] in
+            self?.willChangeValue(for: \.isFinished)
+            self?.isDelayed = true
+            self?.didChangeValue(for: \.isFinished)
+        }
     }
 }
