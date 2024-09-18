@@ -32,7 +32,6 @@ final class SBNetworkClientInterface: SBNetworkClient {
             let urlRequest = try urlRequest(createdFrom: request, timeoutInterval: defaultTimeoutInterval)
             
             let dataTask = SBNetworkClientInterface.session.dataTask(with: urlRequest) { data, response, error in
-                print("Request Date: \(Date())")
                 if let error = error {
                     completionHandler(.failure(error))
                     return

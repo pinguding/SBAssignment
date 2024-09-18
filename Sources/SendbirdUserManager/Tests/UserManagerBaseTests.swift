@@ -248,9 +248,6 @@ open class UserManagerBaseTests: XCTestCase {
             DispatchQueue.global().async {
                 userManager.getUser(userId: createdUser.userId) { getResult in
                     if case .success(let user) = getResult {
-                        print(user.nickname!)
-                        print(initialUserNickname)
-                        print(updatedUserNickname)
                         XCTAssertTrue(user.nickname == initialUserNickname || user.nickname == updatedUserNickname)
                     } else {
                         XCTFail("Failed to retrieve user")
