@@ -36,17 +36,19 @@ public final class SBUserManagerInterface: SBUserManager {
             completionHandler?(.failure(SBUserManagerError.applicationIdAndAPITokenNotSpecified))
             return
         }
-        
+        /// User id 값이 Blank 이거나 Empty인 경우에 대한 예외처리
         if params.userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             completionHandler?(.failure(SBUserManagerError.emptyUserId))
             return
         }
         
+        /// 새롭게 생성할 User ID 값이 이미 캐시된 User들 중 User ID 가 중복될 경우에 대한 예외처리
         if userStorage.getUser(for: params.userId) != nil {
             completionHandler?(.failure(SBUserManagerError.userCreateFailureAlreadyExist))
             return
         }
         
+        /// 유저 생성 제한 수 체크
         if userCreationRateLimit <= currentUserCreateRate {
             completionHandler?(.failure(SBUserManagerError.maximumUserCreationLimitExceeded))
             return
@@ -61,6 +63,8 @@ public final class SBUserManagerInterface: SBUserManager {
                 do {
                     let user = try result.get().convertToUser()
                     completionHandler?(.success(user))
+                    
+                    /// API Request 요청 직전에 미리 userStorage 에 캐싱을 해두었지만 API 를 통해 생성이 완료된 경우 userStorage 와 싱크를 맞추기 위해 업데이트를 한다.
                     self?.userStorage.upsertUser(user)
                 } catch let error {
                     completionHandler?(.failure(error))
@@ -91,6 +95,7 @@ public final class SBUserManagerInterface: SBUserManager {
                     errorList.append(error)
                 }
                 
+                /// 다수의 유저를 생성할 경우 전부 성공, 부분 성공을 구분하고, 성공한 User Id 들과 실패한 User Id 값을 비교해서 에러로 보여준다.
                 if createdUsers.count + errorList.count == params.count {
                     if errorList.isEmpty {
                         completionHandler?(.success(createdUsers))
@@ -113,6 +118,7 @@ public final class SBUserManagerInterface: SBUserManager {
             return
         }
         
+        /// User id 값이 Blank 이거나 Empty인 경우에 대한 예외처리
         if params.userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             completionHandler?(.failure(SBUserManagerError.emptyUserId))
             return
@@ -121,15 +127,13 @@ public final class SBUserManagerInterface: SBUserManager {
         do {
             let updateRequest = try UpdateUserReqeuest(applicationId: applicationId, apiToken: apiToken, parameters: params)
             networkClient.request(request: updateRequest) { [weak self] result in
-                switch result {
-                case let .success(dto):
-                    let user = dto.convertToUser()
+                do {
+                    let user = try result.get().convertToUser()
                     completionHandler?(.success(user))
                     self?.userStorage.upsertUser(user)
-                case let .failure(error):
+                } catch let error {
                     completionHandler?(.failure(error))
                 }
-                
             }
             userStorage.upsertUser(SBUser(userId: params.userId, nickname: params.nickname, profileURL: params.profileURL))
         } catch let error {
@@ -143,11 +147,13 @@ public final class SBUserManagerInterface: SBUserManager {
             return
         }
         
+        /// User id 값이 Blank 이거나 Empty인 경우에 대한 예외처리
         if userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             completionHandler?(.failure(SBUserManagerError.emptyUserId))
             return
         }
         
+        /// User Storage에 이미 캐싱이 되어있는 경우 API Request를 하지 않고 바로 캐싱 값을 리턴한다.
         if let user = userStorage.getUser(for: userId) {
             completionHandler?(.success(user))
             return
@@ -156,12 +162,11 @@ public final class SBUserManagerInterface: SBUserManager {
         let getUserRequest = GetUserReqeuest(applicationId: applicationId, apiToken: apiToken, userId: userId)
         
         networkClient.request(request: getUserRequest) { [weak self] result in
-            switch result {
-            case let .success(dto):
-                let user = dto.convertToUser()
+            do {
+                let user = try result.get().convertToUser()
                 completionHandler?(.success(user))
                 self?.userStorage.upsertUser(user)
-            case let .failure(error):
+            } catch let error {
                 completionHandler?(.failure(error))
             }
         }
@@ -173,6 +178,7 @@ public final class SBUserManagerInterface: SBUserManager {
             return
         }
         
+        /// Nickname 값이 Blank 이거나 Empty인 경우에 대한 예외처리
         if nicknameMatches.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             completionHandler?(.failure(SBUserManagerError.emptyNicknameMatches))
             return
@@ -184,14 +190,13 @@ public final class SBUserManagerInterface: SBUserManager {
                                                      nickname: nicknameMatches)
         
         networkClient.request(request: getUserListRequest) { [weak self] result in
-            switch result {
-            case let .success(dto):
-                let users = dto.users.map { $0.convertToUser() }
+            do {
+                let users = try result.get().users.map { $0.convertToUser() }
                 completionHandler?(.success(users))
-                users.forEach { user in
-                    self?.userStorage.upsertUser(user)
+                users.forEach {
+                    self?.userStorage.upsertUser($0)
                 }
-            case let .failure(error):
+            } catch let error {
                 completionHandler?(.failure(error))
             }
         }

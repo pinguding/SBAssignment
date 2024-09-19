@@ -9,12 +9,16 @@ import Foundation
 
 final class SBNetworkClientInterface: SBNetworkClient {
     
+    /// Sendbird User Manager SDK 에서 서버호출을 공통적으로 담당할 URLSession
     static private let session: URLSession = URLSession(configuration: .default)
     
+    /// Request Timeout 시간
     private let defaultTimeoutInterval: TimeInterval = 30
    
+    /// 1초에 요청할 수 있는 Request 의 제한 수
     private let requestsPerSecondLimit: Int = 1
     
+    /// Request 제한을 위해 만든 OperationQueue
     private let operationQueue: OperationQueue
         
     init() {
@@ -61,6 +65,11 @@ final class SBNetworkClientInterface: SBNetworkClient {
                 }
             }
             
+            /// Request Limit 을 위해 바로 dataTask 를 resume() 하지 않고 OperationQueue에 넣어 OperationQueue에서 관리할 수 있도록 만든다.
+            /// SBDataTaskOperation은 Request 제한 사항을 위해 만들어진 Custom Operation
+            /// - Parameters:
+            ///    - requestsPerSecondLimit : 1초당 생성할 수 있는 request limit 숫자
+            ///    - dataTask : Custom operation 에서 처리할 URLSessionDataTask
             let taskOperation = SBDataTaskOperation(requestsPerSecondLimit: requestsPerSecondLimit, dataTask: dataTask)
             operationQueue.addOperation(taskOperation)
             
@@ -69,6 +78,11 @@ final class SBNetworkClientInterface: SBNetworkClient {
         }
     }
     
+    ///Request Abstract을 URLRequest 형태로 변경해주는 함수
+    ///- Parameters:
+    /// - request: Request protocol 을 만족하는 객체
+    /// - cachePolicy: URLRequest 의 CachePolicy를 지정할 수 있다. Default value 는 .useProtocolCachePolicy
+    /// - timeoutInterval: URLRequest 의 Timeout 을 지정한다.
     private func urlRequest<R: Request>(createdFrom request: R, cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy, timeoutInterval: TimeInterval) throws -> URLRequest {
         guard let url = URL(string: request.baseURL + request.path) else {
             throw RequestError.badURL
@@ -112,6 +126,7 @@ private class SBDataTaskOperation: Operation, @unchecked Sendable {
     
     private var isDelayed: Bool = false
     
+    ///Operation 종료에 Delay를 걸어주기 위해 Custom으로 정의
     override var isFinished: Bool {
         isDelayed && super.isFinished
     }
@@ -121,6 +136,7 @@ private class SBDataTaskOperation: Operation, @unchecked Sendable {
         self.dataTask = dataTask
     }
     
+    ///Operation이 Cancel 될때 URLSessionDataTask 도 같이 Cancel 해준다.
     override func cancel() {
         dataTask.cancel()
     }
@@ -128,6 +144,8 @@ private class SBDataTaskOperation: Operation, @unchecked Sendable {
     override func main() {
         if isCancelled { return }
         dataTask.resume()
+        
+        ///Request Limit per second 조건을 만족시키기 위해 asyncAfter 를 이용한 딜레이 로직
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + (1.0 / Double(requestsPerSecondLimit))) { [weak self] in
             self?.willChangeValue(for: \.isFinished)
             self?.isDelayed = true

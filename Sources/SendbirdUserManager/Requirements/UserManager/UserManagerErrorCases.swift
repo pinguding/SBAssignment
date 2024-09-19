@@ -8,11 +8,20 @@
 import Foundation
 
 public enum SBUserManagerError: LocalizedError {
+    /// SBUserManager 의 initApplication 함수를 통해 Application Id 와 API token을 정의하지 않고 유저를 생성 및 조회할 경우 발생
     case applicationIdAndAPITokenNotSpecified
+    /// 새로운 유저를 생성하려고 할때 사용된 user id가 이미 생성된 유저와 동일할 경우 발생
     case userCreateFailureAlreadyExist
+    /// 한번에 최대 생성할 수 있는 유저 숫자를 초과한 경우
     case maximumUserCreationLimitExceeded
+    /// 여러 유저를 생성할때 부분적 성공이 되었을 경우 성공한 유저와 실패한 유저들의 user id 의 정보를 담고 있는 error.
+    /// - Parameters:
+    ///    - successUserId: 생성에 성공한 유저들의 User ID
+    ///    - failedUserId: 생성에 실패한 유저들의 User ID
     case failedToCreateAllUsers(successUserId: [String], failedUserId: [String])
+    /// 유저를 생성 및 조회할때 요청된 user id 값이 empty 이거나 blank 일 경우 발생
     case emptyUserId
+    /// nickname 을 이용해 유저들을 조회할때 nickname 값이 empty 이거나 blank 일 경우 발생
     case emptyNicknameMatches
     
     public var errorDescription: String? {
